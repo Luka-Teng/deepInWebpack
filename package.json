@@ -1,0 +1,27 @@
+{
+  "name": "deep-in-webpack",
+  "version": "1.0.0",
+  "description": "webpack test",
+  "main": "index.js",
+  "dependencies": {
+    "tapable": "^1.1.1",
+    "webpack": "^4.28.1"
+  },
+  "devDependencies": {
+    "webpack-cli": "^3.2.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tapable": "node debug --inspect tapable-tutorial/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Luka-Teng/deepInWebpack.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Luka-Teng/deepInWebpack/issues"
+  },
+  "homepage": "https://github.com/Luka-Teng/deepInWebpack#readme"
+}
