@@ -18,9 +18,13 @@ const _log = (name) => (...args) => {
   console.log(name, ...args)
 }
 
+let chain = Promise.resolve()
+
 const runTask = (fn) => {
-  console.log(`----------`)
-  fn()
+  chain = chain.then(() => new Promise((res) => {
+    console.log('-----------')
+    fn(res)
+  }))
 }
 
 
@@ -35,10 +39,10 @@ const runTask = (fn) => {
  * ----
  * 5.AsyncParallelHook
  * 6.  AsyncParallelHook,
-  7.AsyncParallelBailHook,
-  8.AsyncSeriesHook,
-  9.AsyncSeriesBailHook,
-  10.AsyncSeriesWaterfallHook
+ * 7.AsyncParallelBailHook,
+ * 8.AsyncSeriesHook,
+ * 9.AsyncSeriesBailHook,
+ * 10.AsyncSeriesWaterfallHook
  * 
  * 每一个 钩子 都是一个构造函数
  * 
@@ -56,10 +60,7 @@ const runTask = (fn) => {
  * SyncHook 
  * 同步钩子，串行执行 tap
  */
-
-
-
-runTask(() => {
+runTask((res) => {
   const syncHook = new SyncHook(["name",'age'])
   const log = _log('syncHook')
 // tap 接受两个参数，第一个参数是名称 （没有任何意义），第二个参数是一个函数，接收参数
@@ -72,8 +73,8 @@ runTask(() => {
   syncHook.tap('3', (name,age) => { 
     log(3, name,age)
    })
-  debugger
   syncHook.call('雷',18)
+  res()
 })
 
 /**
@@ -81,7 +82,7 @@ runTask(() => {
  * 同步钩子，串行的执行 tap
  * 如果函数处理队列有一个返回值不为空，则中断处理
  */
-runTask(() => {
+runTask((res) => {
   const syncBailHook = new SyncBailHook(["name"])
   const log = _log('syncBailHook')
   syncBailHook.tap('1', (name) => { log(1, name) })
@@ -89,10 +90,10 @@ runTask(() => {
     log(2, name)
     return null
   })
-  // 上一个函数返回null 下面的 不执行
-
+  // 上一个函数返回不是undefined下面的不执行
   syncBailHook.tap('3', (name) => { log(3, name) })
   syncBailHook.call('yan')
+  res()
 })
 
 /**
@@ -102,7 +103,7 @@ runTask(() => {
  * 如果该函数B没有返回值，则函数C的参数为函数A的返回值
  * 只有第一个函数可以获得call的参数
  */
-runTask(() => {
+runTask((res) => {
   const syncWaterfallHook = new SyncWaterfallHook(['name'])
   const log = _log('syncWaterfallHook')
   syncWaterfallHook.tap('1', (name) => {
@@ -119,6 +120,7 @@ runTask(() => {
   })
   const ret = syncWaterfallHook.call('我是')
   console.log('SyncWaterfallHook result', ret)
+  res()
 })
 
 /**
@@ -148,7 +150,7 @@ runTask(() => {
     }
   } while(_loop)
  */
-runTask(() => {
+runTask((res) => {
   const syncLoopHook = new SyncLoopHook(['name'])
   const log = _log('SyncLoopHook')
   let loop1 = 3
@@ -163,7 +165,7 @@ runTask(() => {
     log('loop2', name, loop2)
     return --loop2 > 0 ? true : undefined
   })
-  syncLoopHook.tap('99',name=>{
+  syncLoopHook.tap('3',name => {
     console.log('count',count++)
     if(count===name){
       return true
@@ -172,16 +174,13 @@ runTask(() => {
     }
   })
   syncLoopHook.call('luka')
+  res()
 })
 
 /********************************* */
 
 // Async* 类型 的hook 
-
-
-
-
-
+// callback的第一个参数是错误
 
 /**
  * AsyncParallelHook 
@@ -191,7 +190,7 @@ runTask(() => {
  * tapPromise (name: string, callback: (...params: any[]) => Promise): any
  * callAsync 和 promise 的回调参数是没有值的
  */
-runTask(() => {
+runTask((res) => {
 
   // AsyncParallelHook 异步并发执行
   const asyncParallelHook = new AsyncParallelHook(['name'])
@@ -223,9 +222,9 @@ runTask(() => {
       done()
     }, 3000)
   })
-  // asyncParallelHook.callAsync('Luka', () => {
+  // asyncParallelHook.callAsync('Luka', (err) => {
+  //   console.log(err)
   //   log('tapAysnc', '每个函数都调用了done方法我才会被调用')
- 
   // })
 
   // 第三种注册 方式：
@@ -256,90 +255,124 @@ runTask(() => {
     })
   })
   asyncParallelHook.promise('Luka').then(() => {
-    log('tapPromise')
+    res()
     log('ok')
+  }).catch(err => {
+    console.log(err)
+  })
+})
 
-  },()=>{
-    log('error')
 
+runTask((res) => {
+  const asyncSeriesHook=new AsyncSeriesHook(['name'])
+  const log = _log('asyncSeriesHook')
+  asyncSeriesHook.tapAsync('1',(name,cb)=>{
+    setTimeout(()=>{
+      log('1',name)
+      cb()
+    },1000)
+  })
 
+  asyncSeriesHook.tapAsync('2',(name,cb)=>{
+    setTimeout(()=>{
+      log('2',name)
+      cb('asyncSeriesHook err')
+    },1000)
+  })
+
+  asyncSeriesHook.tapAsync('3',(name,cb)=>{
+    setTimeout(()=>{
+      log('3',name)
+      cb()
+    },1000)
+  })
+
+  asyncSeriesHook.callAsync('Luka',(err)=>{
+    console.log(err)
+    log('over')
+    res()
+  })
+})
+
+/**
+ * AsyncSeriesBailHook 异步串行执行
+ * callback不能含有参数，如果含有参数则中断执行
+ */
+runTask((res)=>{
+  const asyncSeriesBailHook=new AsyncSeriesBailHook(['name'])
+  const log = _log('asyncSeriesBailHook')
+  asyncSeriesBailHook.tapAsync('1',(name,cb)=>{
+    setTimeout(()=>{
+      log('11',name)
+      cb()
+    },1000)
+  })
+
+  asyncSeriesBailHook.tapPromise('3', (name) => {
+    return new Promise((res, rej) => {
+      setTimeout(() => {
+        log('22', name, 'tapPromise')
+        rej('asyncSeriesBailHook err')
+      }, 1000)
+    })
+  })
+
+  asyncSeriesBailHook.tapAsync('2',(name,cb)=>{
+    setTimeout(()=>{
+      log('33',name)
+      cb()
+    },1000)
+  })
+
+  asyncSeriesBailHook.tapAsync('3',(name,cb)=>{
+    setTimeout(()=>{
+      log('44',name)
+      cb()
+    },1000)
+  })
+
+  asyncSeriesBailHook.callAsync('lei',(err)=>{
+    console.log(err)
+    log('over')
+    res()
   })
 })
 
 
 /**
- * AsyncSeriesBailHook 异步串行执行
- * 
+ * AsyncSeriesWaterfallHook 下一个任务要拿到上一个任务的返回值
+ * 异步串行
+ * callback的第一个参数为error, 非null的话会直接执行完毕，并返回错误  
  */
 
- runTask(()=>{
+runTask(()=>{
+  const asyncSeriesWaterfallHook=new AsyncSeriesWaterfallHook(['name'])
+  const log = _log('myasyncSeriesWaterfallHook')
 
-   const asyncSeriesBailHook=new AsyncSeriesBailHook(['name']);
-   const log = _log('asyncSeriesBailHook')
-   asyncSeriesBailHook.tapAsync('1',(name,cb)=>{
-     setTimeout(()=>{
-       log('11',name)
-       cb('wrong')
-     },3000)
-   })
-
-   asyncSeriesBailHook.tapAsync('2',(name,cb)=>{
+  asyncSeriesWaterfallHook.tapAsync('1',(name,cb)=>{
     setTimeout(()=>{
-    log('22',name)
-      cb()
-    },4000)
+      log('111',name)
+      cb(null,'wo')
+    },1000)
   })
 
-
-  asyncSeriesBailHook.tapAsync('3',(name,cb)=>{
+  asyncSeriesWaterfallHook.tapAsync('1',(name,cb)=>{
     setTimeout(()=>{
-      log('33',name)
-      cb()
-    },5000)
+      log('222',name)
+      cb('asyncSeriesWaterfallHook err','shi')
+    },1000)
   })
 
-  asyncSeriesBailHook.callAsync('lei',()=>{
-    log('over')
-
+  asyncSeriesWaterfallHook.tapAsync('1',(name,cb)=>{
+    setTimeout(()=>{
+      log('333',name)
+      cb(null,'yige')
+    },1000)
   })
- })
 
-
- /**
-  * AsyncSeriesWaterfallHook 下一个任务要拿到上一个任务的返回值
-  * 异步串行  
-  */
-
-  runTask(()=>{
-    const asyncSeriesWaterfallHook=new AsyncSeriesWaterfallHook(['name'])
-    const log = _log('myasyncSeriesWaterfallHook')
-
-    asyncSeriesWaterfallHook.tapAsync('1',(name,cb)=>{
-      setTimeout(()=>{
-        log('111',name)
-        cb(null,'wo')
-      },3000)
-    })
-
-    asyncSeriesWaterfallHook.tapAsync('1',(name,cb)=>{
-      setTimeout(()=>{
-        log('222',name)
-        cb(null,'shi')
-      },3000)
-    })
-
-    asyncSeriesWaterfallHook.tapAsync('1',(name,cb)=>{
-      setTimeout(()=>{
-        log('333',name)
-        cb(null,'yige')
-      },3000)
-    })
-
-    // 将传进来的参数 转化为数组， 数组的最后一项 是 成功回调的函数
-    asyncSeriesWaterfallHook.callAsync('leiyanyan',()=>{
-      console.log('game over')
-    })
-
-
+  asyncSeriesWaterfallHook.callAsync('leiyanyan',(err)=>{
+    console.log(err)
+    console.log('asyncSeriesWaterfallHook over')
   })
+})
 
