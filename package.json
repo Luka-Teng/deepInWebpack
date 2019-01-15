@@ -12,7 +12,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "tapable": "node --inspect-brk tapable-tutorial/index.js"
+    "tapable": "node --inspect-brk tapable-tutorial/index.js",
+    "debug": "node --inspect --debug-brk $(npm bin)/webpack --config ./webpackSource/webpack.config.js --verbose"
   },
   "repository": {
     "type": "git",
