@@ -72,8 +72,9 @@ runTask((res) => {
    })
   syncHook.tap('3', (name,age) => { 
     log(3, name,age)
+    return 111
    })
-  syncHook.call('雷',18)
+  console.log(syncHook.call('雷',18))
   res()
 })
 
@@ -88,11 +89,12 @@ runTask((res) => {
   syncBailHook.tap('1', (name) => { log(1, name) })
   syncBailHook.tap('2', (name) => {
     log(2, name)
-    return null
+    return false
   })
   // 上一个函数返回不是undefined下面的不执行
   syncBailHook.tap('3', (name) => { log(3, name) })
-  syncBailHook.call('yan')
+  
+  console.log(syncBailHook.call('yan'))
   res()
 })
 
@@ -197,9 +199,9 @@ runTask((res) => {
   const log = _log('asyncParallelHook')
 
   // 第一种注册方式
-  asyncParallelHook.tap('0',(name)=>{
-    log(name,'tap')
-  })
+  // asyncParallelHook.tap('0',(name)=>{
+  //   log(name,'tap')
+  // })
 
 
   // 第二种注册方式 凡是有异步必有回diao
@@ -207,7 +209,7 @@ runTask((res) => {
   asyncParallelHook.tapAsync("1", (name, callback) => {
     setTimeout(() => {
       log("1", name, 'tapAsync')
-      callback()
+      callback('ssss')
     }, 1000)
   })
   asyncParallelHook.tapAsync("2", (name, done) => {
@@ -222,44 +224,44 @@ runTask((res) => {
       done()
     }, 3000)
   })
-  // asyncParallelHook.callAsync('Luka', (err) => {
-  //   console.log(err)
-  //   log('tapAysnc', '每个函数都调用了done方法我才会被调用')
-  // })
+  asyncParallelHook.callAsync('Luka', (err) => {
+    console.log(err)
+    log('tapAysnc', '每个函数都调用了done方法我才会被调用')
+  })
 
   // 第三种注册 方式：
   // tapPromise
  
-  asyncParallelHook.tapPromise('1', (name) => {
-    return new Promise((res,reject) => {
-      setTimeout(() => {
-        log('1', name, 'tapPromise')
-        res(1)
-      }, 1000)
-    })
-  })
-  asyncParallelHook.tapPromise('2', (name) => {
-    return new Promise((res) => {
-      setTimeout(() => {
-        log('2', name, 'tapPromise')
-        res(1)
-      }, 2000)
-    })
-  })
-  asyncParallelHook.tapPromise('3', (name) => {
-    return new Promise((res) => {
-      setTimeout(() => {
-        log('3', name, 'tapPromise')
-        res(1)
-      }, 3000)
-    })
-  })
-  asyncParallelHook.promise('Luka').then(() => {
-    res()
-    log('ok')
-  }).catch(err => {
-    console.log(err)
-  })
+  // asyncParallelHook.tapPromise('1', (name) => {
+  //   return new Promise((res,reject) => {
+  //     setTimeout(() => {
+  //       log('1', name, 'tapPromise')
+  //       res(1)
+  //     }, 1000)
+  //   })
+  // })
+  // asyncParallelHook.tapPromise('2', (name) => {
+  //   return new Promise((res) => {
+  //     setTimeout(() => {
+  //       log('2', name, 'tapPromise')
+  //       res(1)
+  //     }, 2000)
+  //   })
+  // })
+  // asyncParallelHook.tapPromise('3', (name) => {
+  //   return new Promise((res) => {
+  //     setTimeout(() => {
+  //       log('3', name, 'tapPromise')
+  //       res(1)
+  //     }, 3000)
+  //   })
+  // })
+  // asyncParallelHook.promise('Luka').then(() => {
+  //   res()
+  //   log('ok')
+  // }).catch(err => {
+  //   console.log(err)
+  // })
 })
 
 
